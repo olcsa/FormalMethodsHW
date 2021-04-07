@@ -1,135 +1,156 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
 <nta>
-	<declaration>// Global declarations
-
-const int N = 1;
+	<declaration>const int N = 1;
 const int X = 2;
 const int Y = 2;
 
 typedef int[1,X] pubid_t;
 typedef int[1,Y] subid_t;
 
+//Turn on syncs
 chan OnSub[subid_t];
 chan OnPub[pubid_t];
 
+bool PubKnowsSub[pubid_t][subid_t];
+
+//---Protocol---
 broadcast chan HeartbeatRequest, Heartbeat;
 int lastHbSender;
 
-chan HeartbeatAck[subid_t];
+urgent chan HeartbeatAck[subid_t];
 int lastHbAckSender;
 
-chan HeartbeatFinish[pubid_t];
-</declaration>
+urgent chan HeartbeatFinish[pubid_t];
+
+
+//---Data---
+chan Data[subid_t];
+pubid_t LastDataSender;
+chan Ack[pubid_t];
+chan Fin[subid_t];</declaration>
 	<template>
 		<name>Publisher</name>
 		<parameter>pubid_t id</parameter>
 		<declaration>clock timer;
 int AckTry = 0;
 int hbSender;</declaration>
-		<location id="id0" x="-748" y="-969">
+		<location id="id0" x="-680" y="-935">
+			<committed/>
+		</location>
+		<location id="id1" x="-748" y="-969">
 			<name x="-833" y="-1003">PreparingHeartbeatReq</name>
 			<label kind="invariant" x="-833" y="-986">timer &lt;= 3</label>
 		</location>
-		<location id="id1" x="-510" y="-969">
+		<location id="id2" x="-510" y="-969">
 			<name x="-520" y="-1003">Idle</name>
 		</location>
-		<location id="id2" x="-229" y="-969">
+		<location id="id3" x="-229" y="-969">
 			<name x="-204" y="-986">PrepareAcknowledge</name>
 			<committed/>
 		</location>
-		<location id="id3" x="-748" y="-773">
+		<location id="id4" x="-748" y="-773">
 			<name x="-756" y="-756">Off</name>
 		</location>
-		<location id="id4" x="-748" y="-867">
+		<location id="id5" x="-748" y="-867">
 			<name x="-731" y="-875">PrepareHeartbeatReq</name>
 			<committed/>
 		</location>
-		<location id="id5" x="-229" y="-833">
+		<location id="id6" x="-229" y="-833">
 			<name x="-212" y="-841">PreparingAcknowledge</name>
 			<label kind="invariant" x="-221" y="-824">timer &lt;= 1</label>
 		</location>
-		<location id="id6" x="-229" y="-654">
+		<location id="id7" x="-229" y="-654">
 			<name x="-323" y="-637">WaitingForFinish</name>
 			<label kind="invariant" x="-289" y="-620">timer &lt;= 2</label>
 		</location>
-		<init ref="id3"/>
+		<location id="id8" x="-297" y="-833">
+			<committed/>
+		</location>
+		<location id="id9" x="-161" y="-654">
+			<committed/>
+		</location>
+		<init ref="id4"/>
 		<transition>
-			<source ref="id5"/>
-			<target ref="id5"/>
-			<nail x="-272" y="-867"/>
-			<nail x="-272" y="-799"/>
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<nail x="-714" y="-952"/>
 		</transition>
 		<transition>
-			<source ref="id6"/>
+			<source ref="id1"/>
+			<target ref="id0"/>
+			<nail x="-739" y="-935"/>
+		</transition>
+		<transition>
+			<source ref="id9"/>
+			<target ref="id7"/>
+			<nail x="-195" y="-637"/>
+		</transition>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id9"/>
+			<nail x="-195" y="-671"/>
+		</transition>
+		<transition>
+			<source ref="id8"/>
 			<target ref="id6"/>
-			<nail x="-187" y="-680"/>
-			<nail x="-187" y="-629"/>
+			<nail x="-263" y="-807"/>
 		</transition>
 		<transition>
 			<source ref="id6"/>
-			<target ref="id2"/>
+			<target ref="id8"/>
+			<nail x="-272" y="-858"/>
+		</transition>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id3"/>
 			<label kind="guard" x="-408" y="-790">timer &gt;= 2 &amp;&amp; AckTry &lt;= 5</label>
 			<label kind="assignment" x="-408" y="-773">AckTry++</label>
 			<nail x="-416" y="-748"/>
 			<nail x="-416" y="-901"/>
 		</transition>
 		<transition>
-			<source ref="id6"/>
-			<target ref="id1"/>
+			<source ref="id7"/>
+			<target ref="id2"/>
 			<label kind="synchronisation" x="-502" y="-697">HeartbeatFinish[id]?</label>
 			<label kind="assignment" x="-502" y="-680">AckTry = 0</label>
 			<nail x="-510" y="-654"/>
 		</transition>
 		<transition>
-			<source ref="id5"/>
-			<target ref="id6"/>
+			<source ref="id6"/>
+			<target ref="id7"/>
 			<label kind="guard" x="-221" y="-765">timer &gt;= 1</label>
 			<label kind="synchronisation" x="-221" y="-748">HeartbeatAck[hbSender]!</label>
 			<label kind="assignment" x="-221" y="-731">lastHbAckSender = id,
 timer = 0</label>
 		</transition>
 		<transition>
-			<source ref="id2"/>
-			<target ref="id5"/>
+			<source ref="id3"/>
+			<target ref="id6"/>
 			<label kind="assignment" x="-221" y="-918">timer = 0</label>
 		</transition>
 		<transition>
-			<source ref="id4"/>
-			<target ref="id0"/>
-			<label kind="assignment" x="-731" y="-909">timer = 0</label>
+			<source ref="id5"/>
+			<target ref="id1"/>
+			<label kind="assignment" x="-807" y="-901">timer = 0</label>
 		</transition>
 		<transition>
-			<source ref="id3"/>
-			<target ref="id4"/>
+			<source ref="id4"/>
+			<target ref="id5"/>
+			<label kind="synchronisation" x="-748" y="-824">OnPub[id]!</label>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id3"/>
+			<label kind="synchronisation" x="-425" y="-1037">Heartbeat?</label>
+			<label kind="assignment" x="-468" y="-1020">hbSender = lastHbSender,
+PubKnowsSub[id][hbSender] = true</label>
 		</transition>
 		<transition>
 			<source ref="id1"/>
 			<target ref="id2"/>
-			<label kind="synchronisation" x="-399" y="-1011">Heartbeat?</label>
-			<label kind="assignment" x="-442" y="-994">hbSender = lastHbSender</label>
-		</transition>
-		<transition>
-			<source ref="id0"/>
-			<target ref="id1"/>
 			<label kind="guard" x="-646" y="-1011">timer &gt;= 3</label>
 			<label kind="synchronisation" x="-671" y="-994">HeartbeatRequest!</label>
-		</transition>
-	</template>
-	<template>
-		<name>PublisherData</name>
-		<parameter>pubid_t id</parameter>
-		<location id="id7" x="-748" y="-93">
-			<name x="-758" y="-127">Off</name>
-		</location>
-		<location id="id8" x="-552" y="-93">
-			<name x="-562" y="-127">Idle</name>
-		</location>
-		<init ref="id7"/>
-		<transition>
-			<source ref="id7"/>
-			<target ref="id8"/>
-			<label kind="synchronisation" x="-688" y="-110">OnPub[id]?</label>
 		</transition>
 	</template>
 	<template>
@@ -137,103 +158,259 @@ timer = 0</label>
 		<parameter>subid_t id</parameter>
 		<declaration>clock timer;
 int hbAckSender;</declaration>
-		<location id="id9" x="-952" y="-297">
+		<location id="id10" x="-952" y="-297">
 			<name x="-962" y="-331">Off</name>
 		</location>
-		<location id="id10" x="-696" y="-297">
+		<location id="id11" x="-696" y="-297">
 			<name x="-679" y="-306">PreparingHeartbeat</name>
 			<label kind="invariant" x="-679" y="-289">timer &lt;= 3</label>
 		</location>
-		<location id="id11" x="-425" y="-552">
+		<location id="id12" x="-425" y="-552">
 			<name x="-501" y="-586">WaitingForAcknowledge</name>
 		</location>
-		<location id="id12" x="-425" y="-136">
+		<location id="id13" x="-425" y="-136">
 			<name x="-433" y="-119">Idle</name>
 		</location>
-		<location id="id13" x="-858" y="-297">
+		<location id="id14" x="-858" y="-297">
 			<name x="-926" y="-280">PrepareHeartbeat</name>
 			<committed/>
 		</location>
-		<location id="id14" x="-425" y="-357">
+		<location id="id15" x="-425" y="-357">
 			<name x="-408" y="-365">PrepareFinish</name>
 			<committed/>
 		</location>
-		<location id="id15" x="-425" y="-263">
+		<location id="id16" x="-425" y="-263">
 			<name x="-408" y="-272">PreparingFinish</name>
 			<label kind="invariant" x="-408" y="-255">timer &lt;= 1</label>
 		</location>
-		<init ref="id9"/>
+		<location id="id17" x="-697" y="-357">
+			<committed/>
+		</location>
+		<location id="id18" x="-501" y="-263">
+			<committed/>
+		</location>
+		<init ref="id10"/>
+		<transition>
+			<source ref="id18"/>
+			<target ref="id16"/>
+			<nail x="-459" y="-238"/>
+		</transition>
+		<transition>
+			<source ref="id16"/>
+			<target ref="id18"/>
+			<nail x="-467" y="-289"/>
+		</transition>
+		<transition>
+			<source ref="id17"/>
+			<target ref="id11"/>
+			<nail x="-680" y="-331"/>
+		</transition>
 		<transition>
 			<source ref="id11"/>
-			<target ref="id13"/>
+			<target ref="id17"/>
+			<nail x="-722" y="-331"/>
+		</transition>
+		<transition>
+			<source ref="id12"/>
+			<target ref="id14"/>
 			<label kind="guard" x="-840" y="-586">timer &gt;= 3</label>
 			<nail x="-858" y="-552"/>
 		</transition>
 		<transition>
-			<source ref="id15"/>
-			<target ref="id12"/>
+			<source ref="id16"/>
+			<target ref="id13"/>
 			<label kind="guard" x="-408" y="-221">timer &gt;= 1</label>
 			<label kind="synchronisation" x="-408" y="-204">HeartbeatFinish[hbAckSender]!</label>
 		</transition>
 		<transition>
-			<source ref="id14"/>
-			<target ref="id15"/>
+			<source ref="id15"/>
+			<target ref="id16"/>
 			<label kind="assignment" x="-416" y="-331">timer = 0</label>
 		</transition>
 		<transition>
-			<source ref="id12"/>
-			<target ref="id13"/>
+			<source ref="id13"/>
+			<target ref="id14"/>
 			<label kind="synchronisation" x="-705" y="-195">HeartbeatRequest?</label>
 		</transition>
 		<transition>
-			<source ref="id9"/>
-			<target ref="id13"/>
+			<source ref="id10"/>
+			<target ref="id14"/>
+			<label kind="synchronisation" x="-935" y="-323">OnSub[id]!</label>
 		</transition>
 		<transition>
-			<source ref="id11"/>
-			<target ref="id14"/>
+			<source ref="id12"/>
+			<target ref="id15"/>
 			<label kind="synchronisation" x="-416" y="-467">HeartbeatAck[id]?</label>
 			<label kind="assignment" x="-416" y="-450">hbAckSender = lastHbAckSender</label>
 		</transition>
 		<transition>
-			<source ref="id11"/>
-			<target ref="id13"/>
+			<source ref="id12"/>
+			<target ref="id14"/>
 			<label kind="synchronisation" x="-713" y="-459">HeartbeatRequest?</label>
 		</transition>
 		<transition>
-			<source ref="id10"/>
-			<target ref="id11"/>
+			<source ref="id11"/>
+			<target ref="id12"/>
 			<label kind="guard" x="-543" y="-416">timer &gt;= 3</label>
 			<label kind="synchronisation" x="-543" y="-399">Heartbeat!</label>
 			<label kind="assignment" x="-560" y="-382">lastHbSender = id,
 timer = 0</label>
 		</transition>
 		<transition>
-			<source ref="id13"/>
-			<target ref="id10"/>
+			<source ref="id14"/>
+			<target ref="id11"/>
 			<label kind="assignment" x="-807" y="-314">timer = 0</label>
 		</transition>
 	</template>
 	<template>
-		<name>SubsciberData</name>
-		<parameter>subid_t id</parameter>
-		<location id="id16" x="-680" y="-76">
-			<name x="-690" y="-110">Off</name>
+		<name>PublisherData</name>
+		<parameter>pubid_t id</parameter>
+		<declaration>clock timer;
+int sub = 1;</declaration>
+		<location id="id19" x="-510" y="-68">
+			<name x="-587" y="-102">PrepareFin</name>
+			<label kind="invariant" x="-587" y="-85">timer &lt;= 1</label>
 		</location>
-		<location id="id17" x="-433" y="-76">
-			<name x="-443" y="-110">Idle</name>
+		<location id="id20" x="-510" y="51">
+			<name x="-612" y="59">WaitingForAck</name>
+			<label kind="invariant" x="-586" y="76">timer &lt;= 2</label>
 		</location>
-		<init ref="id16"/>
+		<location id="id21" x="-510" y="-263">
+			<name x="-520" y="-297">Off</name>
+		</location>
+		<location id="id22" x="-289" y="-263">
+			<name x="-298" y="-297">Idle</name>
+			<label kind="invariant" x="-272" y="-280">timer &lt;= 15</label>
+		</location>
+		<location id="id23" x="-289" y="51">
+			<name x="-272" y="43">PrepareData</name>
+			<label kind="invariant" x="-272" y="59">timer &lt;= 1</label>
+		</location>
+		<location id="id24" x="-289" y="-145">
+			<name x="-272" y="-153">CheckNextSub</name>
+			<committed/>
+		</location>
+		<init ref="id21"/>
 		<transition>
-			<source ref="id16"/>
-			<target ref="id17"/>
-			<label kind="synchronisation" x="-595" y="-93">OnSub[id]?</label>
+			<source ref="id20"/>
+			<target ref="id23"/>
+			<label kind="guard" x="-433" y="110">timer &gt;= 2</label>
+			<label kind="assignment" x="-425" y="127">timer = 0</label>
+			<nail x="-510" y="110"/>
+			<nail x="-289" y="110"/>
+		</transition>
+		<transition>
+			<source ref="id19"/>
+			<target ref="id24"/>
+			<label kind="guard" x="-434" y="-102">timer &gt;= 1</label>
+			<label kind="synchronisation" x="-425" y="-85">Fin[sub]!</label>
+			<nail x="-298" y="-68"/>
+		</transition>
+		<transition>
+			<source ref="id20"/>
+			<target ref="id19"/>
+			<label kind="synchronisation" x="-570" y="-34">Ack[id]?</label>
+			<label kind="assignment" x="-578" y="-17">timer = 0</label>
+		</transition>
+		<transition>
+			<source ref="id23"/>
+			<target ref="id20"/>
+			<label kind="guard" x="-450" y="0">timer &gt;= 1</label>
+			<label kind="synchronisation" x="-450" y="17">Data[sub]!</label>
+			<label kind="assignment" x="-450" y="34">LastDataSender = id,
+timer = 0</label>
+		</transition>
+		<transition>
+			<source ref="id24"/>
+			<target ref="id22"/>
+			<label kind="guard" x="-374" y="-238">sub &gt; Y</label>
+			<label kind="assignment" x="-374" y="-221">sub = 1,
+timer = 0</label>
+			<nail x="-314" y="-212"/>
+		</transition>
+		<transition>
+			<source ref="id24"/>
+			<target ref="id24"/>
+			<label kind="guard" x="-578" y="-162">sub &lt;= Y &amp;&amp; !(PubKnowsSub[id][sub])</label>
+			<label kind="assignment" x="-374" y="-144">sub++</label>
+			<nail x="-332" y="-128"/>
+			<nail x="-332" y="-162"/>
+		</transition>
+		<transition>
+			<source ref="id24"/>
+			<target ref="id23"/>
+			<label kind="guard" x="-281" y="-51">sub &lt;= Y &amp;&amp; PubKnowsSub[id][sub]</label>
+			<label kind="assignment" x="-281" y="-34">timer = 0</label>
+		</transition>
+		<transition>
+			<source ref="id22"/>
+			<target ref="id24"/>
+			<label kind="guard" x="-272" y="-255">timer &gt;= 15</label>
+			<nail x="-264" y="-204"/>
+		</transition>
+		<transition>
+			<source ref="id21"/>
+			<target ref="id22"/>
+			<label kind="synchronisation" x="-442" y="-297">OnPub[id]?</label>
+			<label kind="assignment" x="-434" y="-280">timer = 0</label>
+		</transition>
+	</template>
+	<template>
+		<name>SubscriberData</name>
+		<parameter>subid_t id</parameter>
+		<declaration>clock timer;
+pubid_t dataSender;</declaration>
+		<location id="id25" x="-586" y="-390">
+			<name x="-596" y="-424">Off</name>
+		</location>
+		<location id="id26" x="-280" y="-390">
+			<name x="-290" y="-424">Idle</name>
+		</location>
+		<location id="id27" x="-280" y="-229">
+			<name x="-255" y="-238">PreparingAck</name>
+			<label kind="invariant" x="-263" y="-221">timer &lt;= 1</label>
+		</location>
+		<location id="id28" x="-586" y="-229">
+			<name x="-688" y="-229">WaitingForFin</name>
+			<label kind="invariant" x="-663" y="-212">timer &lt;= 2</label>
+		</location>
+		<init ref="id25"/>
+		<transition>
+			<source ref="id28"/>
+			<target ref="id26"/>
+			<label kind="synchronisation" x="-501" y="-331">Fin[id]?</label>
+		</transition>
+		<transition>
+			<source ref="id28"/>
+			<target ref="id27"/>
+			<label kind="guard" x="-450" y="-178">timer &gt;= 2</label>
+			<label kind="assignment" x="-450" y="-161">timer = 0</label>
+			<nail x="-433" y="-178"/>
+		</transition>
+		<transition>
+			<source ref="id26"/>
+			<target ref="id27"/>
+			<label kind="synchronisation" x="-263" y="-348">Data[id]?</label>
+			<label kind="assignment" x="-263" y="-331">dataSender = LastDataSender,
+timer = 0</label>
+		</transition>
+		<transition>
+			<source ref="id27"/>
+			<target ref="id28"/>
+			<label kind="guard" x="-434" y="-272">timer &gt;= 1</label>
+			<label kind="synchronisation" x="-459" y="-255">Ack[dataSender]!</label>
+			<label kind="assignment" x="-433" y="-229">timer = 0</label>
+		</transition>
+		<transition>
+			<source ref="id25"/>
+			<target ref="id26"/>
+			<label kind="synchronisation" x="-442" y="-407">OnSub[id]?</label>
 		</transition>
 	</template>
 	<system>// Place template instantiations here.
 //Process = Template();
 
-system Publisher, Subscriber;</system>
+system Publisher, Subscriber, PublisherData, SubscriberData;</system>
 	<queries>
 		<query>
 			<formula></formula>
