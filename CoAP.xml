@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
 <nta>
-	<declaration>const int N = 1;
-const int X = 2;
+	<declaration>const int N = 2;
+const int X = 1;
 const int Y = 2;
 
 typedef int[1,X] pubid_t;
@@ -18,23 +18,29 @@ bool PubKnowsSub[pubid_t][subid_t];
 broadcast chan HeartbeatRequest, Heartbeat;
 int lastHbSender;
 
-urgent chan HeartbeatAck[subid_t];
+chan HeartbeatAck[subid_t];
+int HbAckN = 0;
 int lastHbAckSender;
 
-urgent chan HeartbeatFinish[pubid_t];
+chan HeartbeatFinish[pubid_t];
+int HbFinN = 0;
 
 
 //---Data---
 chan Data[subid_t];
+int DataN = 0;
 pubid_t LastDataSender;
 chan Ack[pubid_t];
-chan Fin[subid_t];</declaration>
+int AckN = 0;
+chan Fin[subid_t];
+int FinN = 0;</declaration>
 	<template>
 		<name>Publisher</name>
 		<parameter>pubid_t id</parameter>
 		<declaration>clock timer;
 int AckTry = 0;
-int hbSender;</declaration>
+int hbSender;
+bool isLost;</declaration>
 		<location id="id0" x="-680" y="-935">
 			<committed/>
 		</location>
@@ -58,19 +64,28 @@ int hbSender;</declaration>
 		</location>
 		<location id="id6" x="-229" y="-833">
 			<name x="-212" y="-841">PreparingAcknowledge</name>
-			<label kind="invariant" x="-221" y="-824">timer &lt;= 1</label>
+			<label kind="invariant" x="-204" y="-824">timer &lt;= 1</label>
 		</location>
 		<location id="id7" x="-229" y="-654">
 			<name x="-323" y="-637">WaitingForFinish</name>
 			<label kind="invariant" x="-289" y="-620">timer &lt;= 2</label>
 		</location>
-		<location id="id8" x="-297" y="-833">
+		<location id="id8" x="-280" y="-833">
 			<committed/>
 		</location>
-		<location id="id9" x="-161" y="-654">
+		<location id="id9" x="-153" y="-612">
 			<committed/>
 		</location>
 		<init ref="id4"/>
+		<transition>
+			<source ref="id6"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-323" y="-790">timer &gt;= 1 &amp;&amp;
+isLost &amp;&amp; 
+HbAckN &lt;= N</label>
+			<label kind="assignment" x="-323" y="-731">HbAckN++</label>
+			<nail x="-229" y="-748"/>
+		</transition>
 		<transition>
 			<source ref="id0"/>
 			<target ref="id1"/>
@@ -84,50 +99,55 @@ int hbSender;</declaration>
 		<transition>
 			<source ref="id9"/>
 			<target ref="id7"/>
-			<nail x="-195" y="-637"/>
+			<nail x="-187" y="-620"/>
 		</transition>
 		<transition>
 			<source ref="id7"/>
 			<target ref="id9"/>
-			<nail x="-195" y="-671"/>
+			<nail x="-187" y="-646"/>
 		</transition>
 		<transition>
 			<source ref="id8"/>
 			<target ref="id6"/>
-			<nail x="-263" y="-807"/>
+			<nail x="-255" y="-807"/>
 		</transition>
 		<transition>
 			<source ref="id6"/>
 			<target ref="id8"/>
-			<nail x="-272" y="-858"/>
+			<nail x="-255" y="-858"/>
 		</transition>
 		<transition>
 			<source ref="id7"/>
 			<target ref="id3"/>
-			<label kind="guard" x="-408" y="-790">timer &gt;= 2 &amp;&amp; AckTry &lt;= 5</label>
-			<label kind="assignment" x="-408" y="-773">AckTry++</label>
-			<nail x="-416" y="-748"/>
-			<nail x="-416" y="-901"/>
+			<label kind="guard" x="-467" y="-942">timer &gt;= 2 &amp;&amp; AckTry &lt;= 5</label>
+			<label kind="assignment" x="-467" y="-925">AckTry++</label>
+			<nail x="-476" y="-748"/>
+			<nail x="-476" y="-942"/>
 		</transition>
 		<transition>
 			<source ref="id7"/>
 			<target ref="id2"/>
-			<label kind="synchronisation" x="-502" y="-697">HeartbeatFinish[id]?</label>
-			<label kind="assignment" x="-502" y="-680">AckTry = 0</label>
+			<label kind="synchronisation" x="-501" y="-697">HeartbeatFinish[id]?</label>
+			<label kind="assignment" x="-501" y="-680">AckTry = 0, HbAckN = 0</label>
 			<nail x="-510" y="-654"/>
 		</transition>
 		<transition>
 			<source ref="id6"/>
 			<target ref="id7"/>
-			<label kind="guard" x="-221" y="-765">timer &gt;= 1</label>
-			<label kind="synchronisation" x="-221" y="-748">HeartbeatAck[hbSender]!</label>
-			<label kind="assignment" x="-221" y="-731">lastHbAckSender = id,
-timer = 0</label>
+			<label kind="guard" x="-153" y="-781">timer &gt;= 1 &amp;&amp; (!isLost || HbAckN &gt; N)</label>
+			<label kind="synchronisation" x="-153" y="-764">HeartbeatAck[hbSender]!</label>
+			<label kind="assignment" x="-153" y="-747">lastHbAckSender = id,
+timer = 0,
+HbAckN = 0</label>
+			<nail x="-170" y="-765"/>
+			<nail x="-170" y="-697"/>
 		</transition>
 		<transition>
 			<source ref="id3"/>
 			<target ref="id6"/>
-			<label kind="assignment" x="-221" y="-918">timer = 0</label>
+			<label kind="select" x="-221" y="-935">lost: int[0,1]</label>
+			<label kind="assignment" x="-221" y="-918">timer = 0,
+isLost = lost</label>
 		</transition>
 		<transition>
 			<source ref="id5"/>
@@ -157,7 +177,8 @@ PubKnowsSub[id][hbSender] = true</label>
 		<name x="5" y="5">Subscriber</name>
 		<parameter>subid_t id</parameter>
 		<declaration>clock timer;
-int hbAckSender;</declaration>
+int hbAckSender;
+bool isLost;</declaration>
 		<location id="id10" x="-952" y="-297">
 			<name x="-962" y="-331">Off</name>
 		</location>
@@ -181,7 +202,7 @@ int hbAckSender;</declaration>
 		</location>
 		<location id="id16" x="-425" y="-263">
 			<name x="-408" y="-272">PreparingFinish</name>
-			<label kind="invariant" x="-408" y="-255">timer &lt;= 1</label>
+			<label kind="invariant" x="-365" y="-255">timer &lt;= 1</label>
 		</location>
 		<location id="id17" x="-697" y="-357">
 			<committed/>
@@ -190,6 +211,16 @@ int hbAckSender;</declaration>
 			<committed/>
 		</location>
 		<init ref="id10"/>
+		<transition>
+			<source ref="id16"/>
+			<target ref="id13"/>
+			<label kind="guard" x="-535" y="-221">timer &gt;= 1 &amp;&amp;
+isLost &amp;&amp; 
+HbFinN &lt;= N</label>
+			<label kind="assignment" x="-535" y="-170">HbFinN++</label>
+			<nail x="-442" y="-221"/>
+			<nail x="-442" y="-178"/>
+		</transition>
 		<transition>
 			<source ref="id18"/>
 			<target ref="id16"/>
@@ -219,18 +250,25 @@ int hbAckSender;</declaration>
 		<transition>
 			<source ref="id16"/>
 			<target ref="id13"/>
-			<label kind="guard" x="-408" y="-221">timer &gt;= 1</label>
-			<label kind="synchronisation" x="-408" y="-204">HeartbeatFinish[hbAckSender]!</label>
+			<label kind="guard" x="-399" y="-221">timer &gt;= 1 &amp;&amp; (!isLost || HbFinN &gt; N)</label>
+			<label kind="synchronisation" x="-399" y="-204">HeartbeatFinish[hbAckSender]!</label>
+			<label kind="assignment" x="-399" y="-187">HbFinN = 0</label>
+			<nail x="-408" y="-221"/>
+			<nail x="-408" y="-178"/>
 		</transition>
 		<transition>
 			<source ref="id15"/>
 			<target ref="id16"/>
-			<label kind="assignment" x="-416" y="-331">timer = 0</label>
+			<label kind="select" x="-416" y="-348">lost: int[0,1]</label>
+			<label kind="assignment" x="-416" y="-331">timer = 0,
+isLost = lost</label>
 		</transition>
 		<transition>
 			<source ref="id13"/>
 			<target ref="id14"/>
-			<label kind="synchronisation" x="-705" y="-195">HeartbeatRequest?</label>
+			<label kind="synchronisation" x="-850" y="-170">HeartbeatRequest?</label>
+			<label kind="assignment" x="-850" y="-144">HbFinN = 0</label>
+			<nail x="-858" y="-144"/>
 		</transition>
 		<transition>
 			<source ref="id10"/>
@@ -246,7 +284,7 @@ int hbAckSender;</declaration>
 		<transition>
 			<source ref="id12"/>
 			<target ref="id14"/>
-			<label kind="synchronisation" x="-713" y="-459">HeartbeatRequest?</label>
+			<label kind="synchronisation" x="-739" y="-459">HeartbeatRequest?</label>
 		</transition>
 		<transition>
 			<source ref="id11"/>
@@ -266,145 +304,193 @@ timer = 0</label>
 		<name>PublisherData</name>
 		<parameter>pubid_t id</parameter>
 		<declaration>clock timer;
-int sub = 1;</declaration>
-		<location id="id19" x="-510" y="-68">
-			<name x="-587" y="-102">PrepareFin</name>
-			<label kind="invariant" x="-587" y="-85">timer &lt;= 1</label>
+int sub = 1;
+bool isLost;</declaration>
+		<location id="id19" x="-510" y="-127">
+			<name x="-587" y="-161">PrepareFin</name>
+			<label kind="invariant" x="-587" y="-144">timer &lt;= 1</label>
 		</location>
-		<location id="id20" x="-510" y="51">
-			<name x="-612" y="59">WaitingForAck</name>
-			<label kind="invariant" x="-586" y="76">timer &lt;= 2</label>
+		<location id="id20" x="-510" y="-8">
+			<name x="-612" y="0">WaitingForAck</name>
+			<label kind="invariant" x="-586" y="17">timer &lt;= 2</label>
 		</location>
-		<location id="id21" x="-510" y="-263">
-			<name x="-520" y="-297">Off</name>
+		<location id="id21" x="-510" y="-348">
+			<name x="-520" y="-382">Off</name>
 		</location>
-		<location id="id22" x="-289" y="-263">
-			<name x="-298" y="-297">Idle</name>
-			<label kind="invariant" x="-272" y="-280">timer &lt;= 15</label>
+		<location id="id22" x="-289" y="-348">
+			<name x="-298" y="-382">Idle</name>
+			<label kind="invariant" x="-272" y="-365">timer &lt;= 15</label>
 		</location>
-		<location id="id23" x="-289" y="51">
-			<name x="-272" y="43">PrepareData</name>
-			<label kind="invariant" x="-272" y="59">timer &lt;= 1</label>
+		<location id="id23" x="-289" y="-8">
+			<name x="-272" y="-16">PrepareData</name>
+			<label kind="invariant" x="-272" y="0">timer &lt;= 1</label>
 		</location>
-		<location id="id24" x="-289" y="-145">
-			<name x="-272" y="-153">CheckNextSub</name>
+		<location id="id24" x="-289" y="-230">
+			<name x="-272" y="-263">CheckNextSub</name>
 			<committed/>
 		</location>
 		<init ref="id21"/>
 		<transition>
-			<source ref="id20"/>
-			<target ref="id23"/>
-			<label kind="guard" x="-433" y="110">timer &gt;= 2</label>
-			<label kind="assignment" x="-425" y="127">timer = 0</label>
-			<nail x="-510" y="110"/>
-			<nail x="-289" y="110"/>
+			<source ref="id23"/>
+			<target ref="id20"/>
+			<label kind="guard" x="-467" y="8">timer &gt;= 1 &amp;&amp;
+isLost &amp;&amp; DataN &lt;= N</label>
+			<label kind="assignment" x="-467" y="42">DataN++</label>
+			<nail x="-331" y="8"/>
+			<nail x="-467" y="8"/>
 		</transition>
 		<transition>
 			<source ref="id19"/>
 			<target ref="id24"/>
-			<label kind="guard" x="-434" y="-102">timer &gt;= 1</label>
-			<label kind="synchronisation" x="-425" y="-85">Fin[sub]!</label>
-			<nail x="-298" y="-68"/>
+			<label kind="guard" x="-510" y="-289">timer &gt;= 1 &amp;&amp;
+isLost &amp;&amp; FinN &lt;= N</label>
+			<label kind="assignment" x="-510" y="-255">FinN++</label>
+			<nail x="-510" y="-229"/>
+		</transition>
+		<transition>
+			<source ref="id20"/>
+			<target ref="id23"/>
+			<label kind="guard" x="-442" y="85">timer &gt;= 2</label>
+			<label kind="assignment" x="-434" y="102">timer = 0</label>
+			<nail x="-493" y="85"/>
+			<nail x="-315" y="85"/>
+		</transition>
+		<transition>
+			<source ref="id19"/>
+			<target ref="id24"/>
+			<label kind="guard" x="-476" y="-195">timer &gt;= 1 &amp;&amp; 
+(!isLost || FinN &gt; N)</label>
+			<label kind="synchronisation" x="-476" y="-161">Fin[sub]!</label>
+			<label kind="assignment" x="-484" y="-144">sub++, FinN = 0, DataN = 0</label>
+			<nail x="-306" y="-127"/>
 		</transition>
 		<transition>
 			<source ref="id20"/>
 			<target ref="id19"/>
-			<label kind="synchronisation" x="-570" y="-34">Ack[id]?</label>
-			<label kind="assignment" x="-578" y="-17">timer = 0</label>
+			<label kind="select" x="-603" y="-102">lost: int[0,1]</label>
+			<label kind="synchronisation" x="-603" y="-85">Ack[id]?</label>
+			<label kind="assignment" x="-603" y="-68">timer = 0,
+isLost = lost</label>
 		</transition>
 		<transition>
 			<source ref="id23"/>
 			<target ref="id20"/>
-			<label kind="guard" x="-450" y="0">timer &gt;= 1</label>
-			<label kind="synchronisation" x="-450" y="17">Data[sub]!</label>
-			<label kind="assignment" x="-450" y="34">LastDataSender = id,
-timer = 0</label>
+			<label kind="guard" x="-484" y="-102">timer &gt;= 1 &amp;&amp; 
+(!isLost || DataN &gt; N)</label>
+			<label kind="synchronisation" x="-459" y="-68">Data[sub]!</label>
+			<label kind="assignment" x="-493" y="-51">LastDataSender = id,
+timer = 0, DataN = 0, FinN = 0</label>
 		</transition>
 		<transition>
 			<source ref="id24"/>
 			<target ref="id22"/>
-			<label kind="guard" x="-374" y="-238">sub &gt; Y</label>
-			<label kind="assignment" x="-374" y="-221">sub = 1,
+			<label kind="guard" x="-374" y="-340">sub &gt; Y</label>
+			<label kind="assignment" x="-374" y="-323">sub = 1,
 timer = 0</label>
-			<nail x="-314" y="-212"/>
+			<nail x="-314" y="-297"/>
 		</transition>
 		<transition>
 			<source ref="id24"/>
 			<target ref="id24"/>
-			<label kind="guard" x="-578" y="-162">sub &lt;= Y &amp;&amp; !(PubKnowsSub[id][sub])</label>
-			<label kind="assignment" x="-374" y="-144">sub++</label>
-			<nail x="-332" y="-128"/>
-			<nail x="-332" y="-162"/>
+			<label kind="guard" x="-254" y="-245">sub &lt;= Y &amp;&amp; !(PubKnowsSub[id][sub])</label>
+			<label kind="assignment" x="-254" y="-228">sub++</label>
+			<nail x="-263" y="-212"/>
+			<nail x="-263" y="-246"/>
 		</transition>
 		<transition>
 			<source ref="id24"/>
 			<target ref="id23"/>
-			<label kind="guard" x="-281" y="-51">sub &lt;= Y &amp;&amp; PubKnowsSub[id][sub]</label>
-			<label kind="assignment" x="-281" y="-34">timer = 0</label>
+			<label kind="select" x="-271" y="-170">lost: int[0,1]</label>
+			<label kind="guard" x="-272" y="-153">sub &lt;= Y &amp;&amp; PubKnowsSub[id][sub]</label>
+			<label kind="assignment" x="-272" y="-136">timer = 0,
+isLost = lost</label>
 		</transition>
 		<transition>
 			<source ref="id22"/>
 			<target ref="id24"/>
-			<label kind="guard" x="-272" y="-255">timer &gt;= 15</label>
-			<nail x="-264" y="-204"/>
+			<label kind="guard" x="-272" y="-340">timer &gt;= 15</label>
+			<nail x="-264" y="-289"/>
 		</transition>
 		<transition>
 			<source ref="id21"/>
 			<target ref="id22"/>
-			<label kind="synchronisation" x="-442" y="-297">OnPub[id]?</label>
-			<label kind="assignment" x="-434" y="-280">timer = 0</label>
+			<label kind="synchronisation" x="-442" y="-382">OnPub[id]?</label>
+			<label kind="assignment" x="-434" y="-365">timer = 0</label>
 		</transition>
 	</template>
 	<template>
 		<name>SubscriberData</name>
 		<parameter>subid_t id</parameter>
 		<declaration>clock timer;
-pubid_t dataSender;</declaration>
+pubid_t dataSender;
+bool isLost;</declaration>
 		<location id="id25" x="-586" y="-390">
 			<name x="-596" y="-424">Off</name>
 		</location>
 		<location id="id26" x="-280" y="-390">
 			<name x="-290" y="-424">Idle</name>
 		</location>
-		<location id="id27" x="-280" y="-229">
-			<name x="-255" y="-238">PreparingAck</name>
-			<label kind="invariant" x="-263" y="-221">timer &lt;= 1</label>
+		<location id="id27" x="-280" y="-178">
+			<name x="-263" y="-195">PreparingAck</name>
+			<label kind="invariant" x="-263" y="-178">timer &lt;= 1</label>
 		</location>
-		<location id="id28" x="-586" y="-229">
-			<name x="-688" y="-229">WaitingForFin</name>
-			<label kind="invariant" x="-663" y="-212">timer &lt;= 2</label>
+		<location id="id28" x="-586" y="-178">
+			<name x="-688" y="-178">WaitingForFin</name>
+			<label kind="invariant" x="-663" y="-161">timer &lt;= 2</label>
+		</location>
+		<location id="id29" x="-280" y="-314">
+			<name x="-272" y="-306">PrepareAck</name>
+			<committed/>
 		</location>
 		<init ref="id25"/>
 		<transition>
-			<source ref="id28"/>
-			<target ref="id26"/>
-			<label kind="synchronisation" x="-501" y="-331">Fin[id]?</label>
-		</transition>
-		<transition>
-			<source ref="id28"/>
+			<source ref="id29"/>
 			<target ref="id27"/>
-			<label kind="guard" x="-450" y="-178">timer &gt;= 2</label>
-			<label kind="assignment" x="-450" y="-161">timer = 0</label>
-			<nail x="-433" y="-178"/>
-		</transition>
-		<transition>
-			<source ref="id26"/>
-			<target ref="id27"/>
-			<label kind="synchronisation" x="-263" y="-348">Data[id]?</label>
-			<label kind="assignment" x="-263" y="-331">dataSender = LastDataSender,
-timer = 0</label>
+			<label kind="select" x="-272" y="-280">lost: int[0,1]</label>
+			<label kind="assignment" x="-272" y="-263">timer = 0,
+isLost = lost</label>
 		</transition>
 		<transition>
 			<source ref="id27"/>
 			<target ref="id28"/>
-			<label kind="guard" x="-434" y="-272">timer &gt;= 1</label>
-			<label kind="synchronisation" x="-459" y="-255">Ack[dataSender]!</label>
-			<label kind="assignment" x="-433" y="-229">timer = 0</label>
+			<label kind="guard" x="-527" y="-305">timer &gt;= 1 &amp;&amp;
+isLost &amp;&amp; AckN &lt;= N</label>
+			<label kind="assignment" x="-382" y="-288">AckN++</label>
+			<nail x="-306" y="-263"/>
+			<nail x="-561" y="-263"/>
+		</transition>
+		<transition>
+			<source ref="id28"/>
+			<target ref="id26"/>
+			<label kind="synchronisation" x="-425" y="-374">Fin[id]?</label>
+			<label kind="assignment" x="-442" y="-357">AckN = 0</label>
+			<nail x="-586" y="-357"/>
+		</transition>
+		<transition>
+			<source ref="id28"/>
+			<target ref="id29"/>
+			<label kind="guard" x="-467" y="-153">timer &gt;= 2</label>
+			<nail x="-544" y="-153"/>
+			<nail x="-144" y="-153"/>
+			<nail x="-144" y="-314"/>
+		</transition>
+		<transition>
+			<source ref="id26"/>
+			<target ref="id29"/>
+			<label kind="synchronisation" x="-255" y="-374">Data[id]?</label>
+			<label kind="assignment" x="-255" y="-357">dataSender = LastDataSender</label>
+		</transition>
+		<transition>
+			<source ref="id27"/>
+			<target ref="id28"/>
+			<label kind="guard" x="-535" y="-229">timer &gt;= 1 &amp;&amp; (!isLost || AckN &gt; N)</label>
+			<label kind="synchronisation" x="-493" y="-212">Ack[dataSender]!</label>
+			<label kind="assignment" x="-493" y="-195">timer = 0, AckN = 0</label>
 		</transition>
 		<transition>
 			<source ref="id25"/>
 			<target ref="id26"/>
-			<label kind="synchronisation" x="-442" y="-407">OnSub[id]?</label>
+			<label kind="synchronisation" x="-476" y="-425">OnSub[id]?</label>
 		</transition>
 	</template>
 	<system>// Place template instantiations here.
